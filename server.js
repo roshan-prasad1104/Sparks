@@ -195,7 +195,26 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3000;
-server.listen(PORT, () => {
-  console.log(`Game server running on http://localhost:${PORT}`);
+const os = require('os');
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
+  // Print accessible LAN addresses to help with cross-device testing
+  const nets = os.networkInterfaces();
+  const addresses = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  console.log(`Game server running on http://${HOST}:${PORT}`);
+  if (addresses.length) {
+    console.log('Accessible on your LAN at:');
+    addresses.forEach(a => console.log(`  http://${a}:${PORT}`));
+  } else {
+    console.log('No LAN IPv4 address detected. Use localhost if running locally.');
+  }
 });
