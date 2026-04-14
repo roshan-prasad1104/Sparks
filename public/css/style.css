@@ -20,7 +20,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
   position: relative;
 }
 
@@ -261,6 +261,8 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .secondary-btn:hover {
   background: rgba(255, 255, 255, 0.2);
@@ -386,6 +388,8 @@ body {
   max-width: 320px;
   height: 480px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .flip-card-inner {

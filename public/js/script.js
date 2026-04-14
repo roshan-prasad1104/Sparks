@@ -328,7 +328,6 @@ window.addEventListener('DOMContentLoaded', () => {
   // Ensure card responds to touch/pointer on mobile devices
   if (card) {
     card.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
       reqFlipCard();
     }, { passive: true });
 
