@@ -6,9 +6,45 @@
   <title>Couples Connect - Interactive Game</title>
   <link rel="stylesheet" href="css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/script.js" defer></script>
-  <script src="js/auth.js" defer></script>
+  <script>
+    (function(){
+      const params = new URLSearchParams(window.location.search);
+      const serverParam = params.get('server');
+      const stored = localStorage.getItem('serverUrl');
+      const serverUrl = serverParam || stored || '';
+      if (serverParam) localStorage.setItem('serverUrl', serverParam);
+      window.SERVER_URL = serverUrl;
+
+      // Dynamically load socket.io client from serverUrl if provided, otherwise from same origin
+      const clientSrc = (serverUrl ? serverUrl : '') + '/socket.io/socket.io.js';
+      const s = document.createElement('script');
+      s.src = clientSrc;
+      s.onload = function() {
+        const app = document.createElement('script');
+        app.src = 'js/script.js';
+        document.head.appendChild(app);
+        const auth = document.createElement('script');
+        auth.src = 'js/auth.js';
+        document.head.appendChild(auth);
+      };
+      s.onerror = function() {
+        console.warn('Failed to load socket.io client from', clientSrc);
+        // Fallback: try loading from same origin
+        const fallback = document.createElement('script');
+        fallback.src = '/socket.io/socket.io.js';
+        fallback.onload = function(){
+          const app = document.createElement('script');
+          app.src = 'js/script.js';
+          document.head.appendChild(app);
+          const auth = document.createElement('script');
+          auth.src = 'js/auth.js';
+          document.head.appendChild(auth);
+        };
+        document.head.appendChild(fallback);
+      };
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
   <!-- Animated Background Orbs -->

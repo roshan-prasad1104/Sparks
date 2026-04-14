@@ -1,10 +1,16 @@
 let socket = null;
-try {
-  if (typeof io !== 'undefined') socket = io();
-} catch (e) {
-  console.warn('socket.io client not available:', e);
-  socket = null;
+function initSocket() {
+  const server = window.SERVER_URL || '';
+  try {
+    if (typeof io !== 'undefined') {
+      socket = server ? io(server) : io();
+    }
+  } catch (e) {
+    console.warn('socket.io client not available or failed to connect:', e);
+    socket = null;
+  }
 }
+initSocket();
 
 // State
 let roomCode = null;
@@ -16,7 +22,7 @@ let isMyTurn = false;
 let isHost = false;
 
 function applyTurnState(turnData) {
-  isMyTurn = (socket.id === turnData.turnId);
+  isMyTurn = (socket && socket.id === turnData.turnId);
   const cardFrontText = document.querySelector('.flip-card-front h3');
   
   if (isMyTurn) {
@@ -54,6 +60,7 @@ function askCustomQuestion() {
     alert("Please write a question first!");
     return;
   }
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('custom-flip', { code: roomCode, question: customQ });
 }
 
