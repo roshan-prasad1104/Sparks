@@ -1,4 +1,10 @@
-const socket = io();
+let socket = null;
+try {
+  if (typeof io !== 'undefined') socket = io();
+} catch (e) {
+  console.warn('socket.io client not available:', e);
+  socket = null;
+}
 
 // State
 let roomCode = null;
@@ -109,12 +115,14 @@ function updateCardSide(flip) {
 // --- Local Actions ---
 
 function createRoom() {
+  if (!socket) return alert('Not connected to game server. Start the server or deploy it publicly.');
   socket.emit('create-room');
 }
 
 function joinRoom() {
   const code = joinCodeInput.value.trim().toUpperCase();
   if (code.length === 4) {
+    if (!socket) return alert('Not connected to game server. Start the server or deploy it publicly.');
     socket.emit('join-room', code);
   } else {
     alert("Please enter a valid 4-letter code.");
@@ -122,6 +130,7 @@ function joinRoom() {
 }
 
 function selectMode(mode) {
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('select-mode', { code: roomCode, mode: mode });
 }
 
@@ -135,11 +144,13 @@ function reqFlipCard() {
     alert("In Trivia, you must type your question in the box below instead of tapping!");
     return;
   }
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('flip-card', roomCode);
 }
 
 function reqNextCard() {
   if (!isFlipped) return;
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('next-card', roomCode);
 }
 
@@ -149,131 +160,135 @@ function submitAnswer() {
     alert("Please type something first!");
     return;
   }
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('submit-answer', { code: roomCode, answer: answer });
 }
 
 function returnToMenu() {
+  if (!socket) return alert('Not connected to game server.');
   socket.emit('return-menu', roomCode);
 }
 
 // --- Socket Listeners ---
 
-socket.on('error-msg', (msg) => {
-  alert(msg);
-});
-
-socket.on('room-created', (code) => {
-  roomCode = code;
-  isHost = true;
-  roomInfo.style.display = 'block';
-  myRoomCodeMsg.innerText = code;
-  document.querySelector('.lobby-controls').style.display = 'none';
-  
-  // Auto-copy the code as soon as it's generated
-  copyToClipboard(code).then(() => {
-    alert("Room created! Code " + code + " has been auto-copied to your clipboard.");
+if (socket) {
+  socket.on('error-msg', (msg) => {
+    alert(msg);
   });
-});
 
-socket.on('room-joined', (code) => {
-  roomCode = code;
-  isHost = false;
-  waitingMsg.innerText = "Successfully joined room!";
-});
+  socket.on('room-created', (code) => {
+    roomCode = code;
+    isHost = true;
+    roomInfo.style.display = 'block';
+    myRoomCodeMsg.innerText = code;
+    document.querySelector('.lobby-controls').style.display = 'none';
+    
+    // Auto-copy the code as soon as it's generated
+    copyToClipboard(code).then(() => {
+      alert("Room created! Code " + code + " has been auto-copied to your clipboard.");
+    });
+  });
 
-socket.on('players-ready', () => {
-  if (!isHost) {
-    document.getElementById('game-modes-container').style.display = 'none';
-    document.getElementById('guest-waiting-msg').style.display = 'block';
-    document.getElementById('connected-msg').innerText = "Partner connected!";
-  } else {
-    document.getElementById('game-modes-container').style.display = 'flex';
-    document.getElementById('guest-waiting-msg').style.display = 'none';
-    document.getElementById('connected-msg').innerText = "Partner connected! Choose a mode:";
-  }
-  switchScreen(lobbyScreen, menuScreen);
-});
+  socket.on('room-joined', (code) => {
+    roomCode = code;
+    isHost = false;
+    waitingMsg.innerText = "Successfully joined room!";
+  });
 
-socket.on('mode-started', (data) => {
-  currentMode = data.mode;
-  
-  if (data.mode === 'truth') modeTitle.innerText = 'Deep Truths';
-  else if (data.mode === 'dare') modeTitle.innerText = 'Playful Dares';
-  else if (data.mode === 'trivia') modeTitle.innerText = 'Better Half Trivia';
+  socket.on('players-ready', () => {
+    if (!isHost) {
+      document.getElementById('game-modes-container').style.display = 'none';
+      document.getElementById('guest-waiting-msg').style.display = 'block';
+      document.getElementById('connected-msg').innerText = "Partner connected!";
+    } else {
+      document.getElementById('game-modes-container').style.display = 'flex';
+      document.getElementById('guest-waiting-msg').style.display = 'none';
+      document.getElementById('connected-msg').innerText = "Partner connected! Choose a mode:";
+    }
+    switchScreen(lobbyScreen, menuScreen);
+  });
 
-  applyTurnState(data);
-  updateCardSide(false);
-  switchScreen(menuScreen, gameScreen);
-});
+  socket.on('mode-started', (data) => {
+    currentMode = data.mode;
+    
+    if (data.mode === 'truth') modeTitle.innerText = 'Deep Truths';
+    else if (data.mode === 'dare') modeTitle.innerText = 'Playful Dares';
+    else if (data.mode === 'trivia') modeTitle.innerText = 'Better Half Trivia';
 
-socket.on('card-flipped', (question) => {
-  questionText.innerText = question;
-  updateCardSide(true);
-  
-  // Hide custom question field
-  document.getElementById('custom-question-section').style.display = 'none';
+    applyTurnState(data);
+    updateCardSide(false);
+    switchScreen(menuScreen, gameScreen);
+  });
 
-  // Show answer section
-  document.getElementById('answer-section').style.display = 'block';
-  
-  if (currentMode === 'trivia' && isMyTurn) {
+  socket.on('card-flipped', (question) => {
+    questionText.innerText = question;
+    updateCardSide(true);
+    
+    // Hide custom question field
+    document.getElementById('custom-question-section').style.display = 'none';
+
+    // Show answer section
+    document.getElementById('answer-section').style.display = 'block';
+    
+    if (currentMode === 'trivia' && isMyTurn) {
+      document.getElementById('submit-answer-btn').style.display = 'none';
+      document.getElementById('player-answer').style.display = 'none';
+      document.getElementById('answer-status-msg').style.display = 'block';
+      document.getElementById('answer-status-msg').innerText = "Waiting for partner to answer...";
+    } else {
+      document.getElementById('submit-answer-btn').style.display = 'inline-block';
+      document.getElementById('player-answer').style.display = 'inline-block';
+      document.getElementById('player-answer').value = '';
+      document.getElementById('answer-status-msg').style.display = 'none';
+    }
+    
+    document.getElementById('revealed-answers').style.display = 'none';
+  });
+
+  socket.on('waiting-for-partner', () => {
     document.getElementById('submit-answer-btn').style.display = 'none';
     document.getElementById('player-answer').style.display = 'none';
     document.getElementById('answer-status-msg').style.display = 'block';
-    document.getElementById('answer-status-msg').innerText = "Waiting for partner to answer...";
-  } else {
-    document.getElementById('submit-answer-btn').style.display = 'inline-block';
-    document.getElementById('player-answer').style.display = 'inline-block';
-    document.getElementById('player-answer').value = '';
+    document.getElementById('answer-status-msg').innerText = "Waiting for partner...";
+  });
+
+  socket.on('partner-answered', () => {
+    document.getElementById('answer-status-msg').style.display = 'block';
+    if (document.getElementById('submit-answer-btn').style.display !== 'none') {
+      document.getElementById('answer-status-msg').innerText = "Partner has answered!";
+    }
+  });
+
+  socket.on('answers-revealed', (answersList) => {
+    document.getElementById('submit-answer-btn').style.display = 'none';
+    document.getElementById('player-answer').style.display = 'none';
     document.getElementById('answer-status-msg').style.display = 'none';
-  }
-  
-  document.getElementById('revealed-answers').style.display = 'none';
-});
+    
+    const revealedSec = document.getElementById('revealed-answers');
+    revealedSec.style.display = 'block';
+    
+    document.getElementById('p1-answer').innerText = answersList[0] ? answersList[0].name + ": " + answersList[0].text : "";
+    document.getElementById('p2-answer').innerText = answersList[1] ? answersList[1].name + ": " + answersList[1].text : "";
+  });
 
-socket.on('waiting-for-partner', () => {
-  document.getElementById('submit-answer-btn').style.display = 'none';
-  document.getElementById('player-answer').style.display = 'none';
-  document.getElementById('answer-status-msg').style.display = 'block';
-  document.getElementById('answer-status-msg').innerText = "Waiting for partner...";
-});
+  socket.on('next-card-ready', (turnData) => {
+    updateCardSide(false);
+    applyTurnState(turnData);
+    document.getElementById('answer-section').style.display = 'none';
+  });
 
-socket.on('partner-answered', () => {
-  document.getElementById('answer-status-msg').style.display = 'block';
-  if (document.getElementById('submit-answer-btn').style.display !== 'none') {
-    document.getElementById('answer-status-msg').innerText = "Partner has answered!";
-  }
-});
+  socket.on('back-to-menu', () => {
+    switchScreen(gameScreen, menuScreen);
+    updateCardSide(false);
+  });
 
-socket.on('answers-revealed', (answersList) => {
-  document.getElementById('submit-answer-btn').style.display = 'none';
-  document.getElementById('player-answer').style.display = 'none';
-  document.getElementById('answer-status-msg').style.display = 'none';
-  
-  const revealedSec = document.getElementById('revealed-answers');
-  revealedSec.style.display = 'block';
-  
-  document.getElementById('p1-answer').innerText = answersList[0] ? answersList[0].name + ": " + answersList[0].text : "";
-  document.getElementById('p2-answer').innerText = answersList[1] ? answersList[1].name + ": " + answersList[1].text : "";
-});
-
-socket.on('next-card-ready', (turnData) => {
-  updateCardSide(false);
-  applyTurnState(turnData);
-  document.getElementById('answer-section').style.display = 'none';
-});
-
-socket.on('back-to-menu', () => {
-  switchScreen(gameScreen, menuScreen);
-  updateCardSide(false);
-});
-
-socket.on('partner-disconnected', () => {
-  alert("Your partner disconnected.");
-  // Restart app state
-  roomCode = null;
-  location.reload();
-});
+  socket.on('partner-disconnected', () => {
+    alert("Your partner disconnected.");
+    // Restart app state
+    roomCode = null;
+    location.reload();
+  });
+}
 
 function copyToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
