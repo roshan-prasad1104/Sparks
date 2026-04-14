@@ -324,4 +324,18 @@ window.addEventListener('DOMContentLoaded', () => {
       joinCodeInput.value = roomParam.toUpperCase();
     }
   }
+  
+  // Ensure card responds to touch/pointer on mobile devices
+  if (card) {
+    card.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      reqFlipCard();
+    }, { passive: true });
+
+    // Improve touch responsiveness for buttons by adding a no-op touchstart
+    // This can hint some browsers to remove the 300ms delay.
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('touchstart', () => {}, { passive: true });
+    });
+  }
 });
