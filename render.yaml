@@ -1,0 +1,17 @@
+# Render manifest for automatic deployment
+# After connecting this GitHub repo to Render, Render will create the service
+# using the settings below and auto-deploy on pushes to `main`.
+
+services:
+  - type: web
+    name: sparks-server
+    env: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    # Render will set PORT via environment variable; server.js uses process.env.PORT
+    envVars:
+      - key: NODE_ENV
+        value: production
