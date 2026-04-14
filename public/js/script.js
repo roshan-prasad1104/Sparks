@@ -12,6 +12,63 @@ function initSocket() {
 }
 initSocket();
 
+// Connection status UI helpers
+function updateConnectionUI() {
+  const server = window.SERVER_URL || 'auto';
+  const serverEl = document.getElementById('status-server');
+  const connEl = document.getElementById('status-conn');
+  if (serverEl) serverEl.innerText = server || 'auto';
+  if (!connEl) return;
+  if (!socket) {
+    connEl.innerText = 'disconnected';
+    connEl.style.color = '#ff6961';
+  } else {
+    connEl.innerText = socket.connected ? 'connected' : 'connecting...';
+    connEl.style.color = socket.connected ? '#7CFC00' : '#ffb86b';
+  }
+}
+
+function attachStatusControls() {
+  const setBtn = document.getElementById('status-server-set');
+  const clearBtn = document.getElementById('status-server-clear');
+  const input = document.getElementById('status-server-input');
+  if (setBtn && input) {
+    setBtn.addEventListener('click', () => {
+      const val = input.value.trim();
+      if (!val) return alert('Enter server URL (include https://)');
+      localStorage.setItem('serverUrl', val);
+      alert('Server URL saved. Reloading to connect...');
+      location.reload();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      localStorage.removeItem('serverUrl');
+      alert('Cleared saved server. Reloading...');
+      location.reload();
+    });
+  }
+}
+
+// Hook socket events to update UI
+function hookSocketStatus() {
+  updateConnectionUI();
+  if (!socket) return;
+  socket.on('connect', () => updateConnectionUI());
+  socket.on('connect_error', () => updateConnectionUI());
+  socket.on('disconnect', () => updateConnectionUI());
+}
+
+// Run UI attach after DOM ready
+window.addEventListener('DOMContentLoaded', () => {
+  attachStatusControls();
+  // fill input with current server
+  const input = document.getElementById('status-server-input');
+  if (input) input.value = window.SERVER_URL || '';
+  // small timeout to allow socket to initialize
+  setTimeout(() => hookSocketStatus(), 500);
+});
+
 // State
 let roomCode = null;
 let currentMode = '';

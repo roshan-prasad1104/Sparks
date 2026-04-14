@@ -73,6 +73,16 @@
       </div>
     </section>
 
+    <!-- Connection status overlay -->
+    <div id="connection-status" style="position:fixed;bottom:12px;right:12px;z-index:9999;background:rgba(0,0,0,0.6);color:#fff;padding:10px;border-radius:8px;font-size:0.9rem;max-width:320px;">
+      <div id="status-text">Server: <span id="status-server">auto</span> — <span id="status-conn">unknown</span></div>
+      <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
+        <input id="status-server-input" placeholder="https://your-server" style="flex:1;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);color:#fff;outline:none;font-size:0.85rem;" />
+        <button id="status-server-set" style="padding:6px 8px;border-radius:6px;border:none;background:var(--accent-1);color:white;font-weight:600;cursor:pointer;font-size:0.85rem;">Set</button>
+        <button id="status-server-clear" style="padding:6px;border-radius:6px;border:none;background:rgba(255,255,255,0.08);color:white;cursor:pointer;font-size:0.85rem;">Clear</button>
+      </div>
+    </div>
+
     <!-- Signup Screen -->
     <section id="signup-screen" class="screen">
       <header class="hero">
